@@ -1,0 +1,220 @@
+<main class="page-shell">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="SearchFashion home">
+      <span class="brand-mark">S</span>
+      <span>SEARCH<span class="brand-light">FASHION</span></span>
+    </a>
+    <span class="topbar-note"><span class="status-dot"></span> FASHION INDEX</span>
+  </header>
+
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">YOUR PERSONAL STYLE ARCHIVE</p>
+      <h1>Find your <span>fashion.</span></h1>
+      <p class="hero-description">
+        Khám phá phong cách phù hợp từ bộ sưu tập của bạn.
+        Tìm kiếm theo chủ đề hoặc chi tiết, rồi mở slug để xem trọn vẹn.
+      </p>
+    </div>
+    <div class="hero-stamp" aria-hidden="true">
+      <span>CURATED</span>
+      <strong>STYLE<br />IN MOTION</strong>
+      <span>VOL. 01 — 2025</span>
+    </div>
+  </section>
+
+  <section class="search-panel" aria-label="Fashion search">
+    <form class="search-form" (ngSubmit)="search()">
+      <label class="search-input-wrap">
+        <span class="field-label">TỪ KHÓA TÌM KIẾM</span>
+        <span class="input-line">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="10.8" cy="10.8" r="6.8"></circle>
+            <path d="m16 16 5 5"></path>
+          </svg>
+          <input
+            name="query"
+            type="search"
+            placeholder="Ví dụ: minimal, summer, streetwear..."
+            [ngModel]="query()"
+            (ngModelChange)="query.set($event)"
+            autocomplete="off"
+          />
+        </span>
+      </label>
+
+      <label class="select-wrap">
+        <span class="field-label">TÌM TRONG</span>
+        <select
+          name="searchField"
+          [ngModel]="searchField()"
+          (ngModelChange)="searchField.set($event)"
+        >
+          <option value="fashion_subject">Fashion subject</option>
+          <option value="fashion_detail">Fashion detail</option>
+        </select>
+      </label>
+
+      <label class="select-wrap result-count">
+        <span class="field-label">SỐ KẾT QUẢ</span>
+        <select
+          name="resultLimit"
+          [ngModel]="resultLimit()"
+          (ngModelChange)="resultLimit.set(+$event)"
+        >
+          <option [ngValue]="12">12 items</option>
+          <option [ngValue]="24">24 items</option>
+          <option [ngValue]="50">50 items</option>
+          <option [ngValue]="100">100 items</option>
+        </select>
+      </label>
+
+      <button class="search-button" type="submit" [disabled]="!query().trim() || loading()">
+        {{ loading() ? 'ĐANG TÌM...' : 'TÌM KIẾM' }}
+        <span aria-hidden="true">↗</span>
+      </button>
+    </form>
+  </section>
+
+  <section class="results-section" aria-live="polite">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">THE COLLECTION</p>
+        <h2>{{ hasSearched() ? 'Kết quả tìm kiếm' : 'Khám phá bộ sưu tập' }}</h2>
+      </div>
+      @if (hasSearched() && results().length > 0) {
+        <div class="result-count-label">
+          <span>{{ results().length.toString().padStart(2, '0') }}</span> LOOKS FOUND
+        </div>
+      }
+    </div>
+
+    <div class="similarity-legend" aria-label="Jaccard similarity legend">
+      <span class="legend-title">JACCARD SIMILARITY</span>
+      <span><i class="legend-swatch swatch-high"></i> 75–100%</span>
+      <span><i class="legend-swatch swatch-medium"></i> 50–&lt;75%</span>
+      <span><i class="legend-swatch swatch-low"></i> Dưới 50%</span>
+    </div>
+
+    @if (errorMessage()) {
+      <div class="message message-error" role="alert">{{ errorMessage() }}</div>
+    } @else if (loading()) {
+      <div class="message loading-state"><span class="loader"></span> Đang tìm những phong cách phù hợp...</div>
+    } @else if (hasSearched() && results().length === 0) {
+      <div class="message empty-state">
+        <span class="empty-mark">∅</span>
+        <strong>Chưa tìm thấy phong cách phù hợp</strong>
+        <span>Thử từ khóa khác hoặc chuyển sang trường tìm kiếm còn lại.</span>
+      </div>
+    } @else if (!hasSearched()) {
+      <div class="message empty-state welcome-state">
+        <span class="empty-mark">✳</span>
+        <strong>Bắt đầu với một ý tưởng</strong>
+        <span>Nhập từ khóa phía trên để tìm các look tương đồng trong bộ sưu tập.</span>
+      </div>
+    } @else {
+      <div class="collection-layout">
+        <div class="fashion-list">
+          <div class="list-header" aria-hidden="true">
+            <span>LOOK</span>
+            <span>FASHION DETAILS</span>
+            <span>SLUG · SELECT TO EXPLORE</span>
+            <span>JACCARD</span>
+          </div>
+          @for (fashion of results(); track fashion._id) {
+            <article
+              class="fashion-card"
+              [class.similarity-high]="fashion.jaccard_similarity >= 0.75"
+              [class.similarity-medium]="fashion.jaccard_similarity >= 0.5 && fashion.jaccard_similarity < 0.75"
+              [class.similarity-low]="fashion.jaccard_similarity < 0.5"
+            >
+              <div class="card-image-wrap">
+                @if (fashion.fashion_image) {
+                  <img
+                    class="fashion-image"
+                    [src]="fashion.fashion_image"
+                    [alt]="fashion.fashion_subject || fashion.style || 'Fashion image'"
+                    (error)="hideBrokenImage($event)"
+                  />
+                }
+                <span class="image-index">{{ fashion.idf.toString().padStart(3, '0') }}</span>
+                @if (!fashion.fashion_image) {
+                  <span class="image-placeholder">SF</span>
+                }
+              </div>
+              <div class="card-copy">
+                <div class="card-kicker">
+                  <span>ID {{ fashion._id }}</span>
+                  <span>IDF {{ fashion.idf }}</span>
+                </div>
+                <h3>{{ fashion.style || 'Untitled style' }}</h3>
+                <p class="fashion-subject">{{ fashion.fashion_subject || 'Chưa có fashion subject' }}</p>
+                <p class="fashion-detail">{{ fashion.fashion_detail || 'Chưa có fashion detail' }}</p>
+              </div>
+              <div class="slug-column">
+                <span class="slug-column-label">SLUG</span>
+                <button
+                  class="slug-button"
+                  type="button"
+                  (click)="openFashion(fashion.slug)"
+                  [attr.aria-label]="'Xem chi tiết ' + fashion.slug"
+                >
+                  <span>{{ fashion.slug }}</span>
+                  <span class="slug-arrow" aria-hidden="true">↗</span>
+                </button>
+              </div>
+              <div class="similarity-score">
+                <span class="score-label">MATCH</span>
+                <strong>{{ formatSimilarity(fashion.jaccard_similarity) }}</strong>
+                <span class="score-caption">Jaccard</span>
+              </div>
+            </article>
+          }
+        </div>
+
+        <aside class="detail-panel" aria-label="Fashion detail">
+          @if (detailLoading()) {
+            <div class="detail-empty"><span class="loader"></span><span>Đang phân tích slug...</span></div>
+          } @else if (detailError()) {
+            <div class="detail-empty detail-error" role="alert">{{ detailError() }}</div>
+          } @else if (selectedFashion(); as fashion) {
+            <div class="detail-topline">
+              <span class="eyebrow">SELECTED LOOK</span>
+              <span class="detail-id">IDF {{ fashion.idf }}</span>
+            </div>
+            @if (fashion.fashion_image) {
+              <img
+                class="detail-image"
+                [src]="fashion.fashion_image"
+                [alt]="fashion.fashion_subject || fashion.style || 'Fashion image'"
+                (error)="hideBrokenImage($event)"
+              />
+            }
+            <p class="detail-style">{{ fashion.style || 'FASHION LOOK' }}</p>
+            <h3>{{ fashion.fashion_subject || 'Không có chủ đề' }}</h3>
+            <div class="detail-divider"></div>
+            <span class="field-label">FASHION DETAIL</span>
+            <p class="detail-description">{{ fashion.fashion_detail || 'Fashion này chưa có chi tiết.' }}</p>
+            <div class="detail-slug">
+              <span class="field-label">UNIQUE SLUG</span>
+              <code>{{ fashion.slug }}</code>
+            </div>
+          } @else {
+            <div class="detail-empty">
+              <span class="detail-spark">✳</span>
+              <strong>Chi tiết Fashion</strong>
+              <span>Chọn slug của một look để xem đầy đủ thông tin tại đây.</span>
+            </div>
+          }
+        </aside>
+      </div>
+    }
+  </section>
+
+  <footer class="page-footer">
+    <span>SEARCHFASHION <span class="footer-dot">·</span> STYLE DISCOVERY</span>
+    @if (hasSearched() && results().length > 0) {
+      <button class="clear-button" type="button" (click)="clearSearch()">XÓA KẾT QUẢ <span>↗</span></button>
+    }
+  </footer>
+</main>
